@@ -11,8 +11,8 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
 - ✅ **Phase 1: Project Scaffold** - Complete
 - ✅ **Phase 2: App Shell + Core Components** - Complete
 - ✅ **Phase 3: Detail View + Special Views** - Complete
-- 🚧 **Phase 4: MoSPI MCP Integration** - Next
-- ⏳ **Phase 5: Additional Data Sources** - Planned
+- ✅ **Phase 4: MoSPI MCP Integration** - Complete
+- 🚧 **Phase 5: Additional Data Sources** - Next
 
 ## 📊 Features
 
@@ -53,13 +53,30 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
 - ✅ Escape key and backdrop click to close drawer
 - ✅ Smooth slide-in animations and transitions
 
-### Future (Phase 4+)
+### Live Data Integration (Phase 4)
 
-- Live data from MoSPI eSankhyiki MCP Server
-- RBI DBIE API integration
-- NSE/BSE market data
-- Real-time updates
-- Alert notifications
+- ✅ MoSPI eSankhyiki MCP Server integration
+- ✅ 4-tool sequential workflow (overview → indicators → metadata → data)
+- ✅ Hybrid data provider (MoSPI + mock fallback)
+- ✅ API proxy routes for server-to-server communication
+- ✅ Smart caching and error handling
+- ✅ Environment-based data source switching
+- ✅ Graceful degradation when MoSPI unavailable
+
+**Available from MoSPI:**
+- CPI (Headline, Core, Food) - Consumer Price Index
+- WPI - Wholesale Price Index
+- IIP - Index of Industrial Production
+- NAS - National Accounts Statistics (GDP)
+- PLFS - Periodic Labour Force Survey (Unemployment, LFPR)
+
+### Future (Phase 5+)
+
+- RBI DBIE API integration (rates, credit, FX reserves)
+- NSE/BSE market data integration
+- Real-time updates via WebSockets
+- Alert notifications (email/push)
+- Data export (PDF/Excel)
 
 ## 🛠️ Tech Stack
 
@@ -167,4 +184,13 @@ MIT
 
 ---
 
-**Note:** Currently using realistic mock data. Live data integration coming in Phase 4.
+**Note:** Phase 4 complete! The app now supports live data from the MoSPI eSankhyiki MCP Server. To enable:
+
+```bash
+# In .env.local, change:
+NEXT_PUBLIC_DATA_SOURCE=hybrid  # Uses MoSPI for CPI/WPI/IIP/GDP/PLFS, mock for others
+# or
+NEXT_PUBLIC_DATA_SOURCE=mospi   # Uses only MoSPI (for testing)
+```
+
+Currently defaults to `mock` for development. Live integration ready when MoSPI server is accessible.

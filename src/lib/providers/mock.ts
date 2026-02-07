@@ -617,3 +617,6 @@ export class MockDataProvider implements DataProvider {
     return indicator.nextRelease || null;
   }
 }
+
+// Export singleton instance for use in hybrid provider
+export const mockProvider = new MockDataProvider();

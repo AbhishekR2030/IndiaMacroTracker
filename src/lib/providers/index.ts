@@ -1,10 +1,13 @@
 import type { DataProvider } from "./interface";
 import { MockDataProvider } from "./mock";
+import { mospiProvider } from "./mospi";
+import { hybridProvider } from "./hybrid";
 
 /**
  * Get the active data provider based on environment configuration
- * For Phase 1-3: Uses mock data
- * For Phase 4+: Can switch to MoSPI or hybrid providers
+ * - "mock": Uses mock data only (Phase 1-3)
+ * - "mospi": Uses MoSPI MCP Server only (Phase 4 - testing)
+ * - "hybrid": Intelligently combines MoSPI + mock (Phase 4 - recommended)
  */
 export function getDataProvider(): DataProvider {
   const dataSource = process.env.NEXT_PUBLIC_DATA_SOURCE || "mock";
@@ -12,11 +15,10 @@ export function getDataProvider(): DataProvider {
   switch (dataSource) {
     case "mock":
       return new MockDataProvider();
-    // Phase 4: Add MoSPI provider
-    // case "mospi":
-    //   return new MoSPIDataProvider();
-    // case "hybrid":
-    //   return new HybridDataProvider();
+    case "mospi":
+      return mospiProvider;
+    case "hybrid":
+      return hybridProvider;
     default:
       console.warn(
         `Unknown DATA_SOURCE: ${dataSource}. Falling back to mock.`
