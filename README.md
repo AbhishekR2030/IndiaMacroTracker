@@ -10,8 +10,8 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
 
 - ✅ **Phase 1: Project Scaffold** - Complete
 - ✅ **Phase 2: App Shell + Core Components** - Complete
-- 🚧 **Phase 3: Detail View + Special Views** - Next
-- ⏳ **Phase 4: MoSPI MCP Integration** - Planned
+- ✅ **Phase 3: Detail View + Special Views** - Complete
+- 🚧 **Phase 4: MoSPI MCP Integration** - Next
 - ⏳ **Phase 5: Additional Data Sources** - Planned
 
 ## 📊 Features
@@ -43,13 +43,15 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
   - Change indicators with forecast surprises
   - Hover animations
 
-### Coming Soon (Phase 3)
+### Newly Added (Phase 3)
 
-- Detail drawer with interactive charts
-- Calendar view for upcoming data releases
-- Risk Dashboard with 5 assessment cards
-- Transform toggles (Level/YoY/MoM)
-- History tables
+- ✅ Detail drawer with interactive charts
+- ✅ Calendar view for upcoming data releases (16+ events)
+- ✅ Risk Dashboard with 5 assessment cards
+- ✅ Transform toggles (Level/YoY/MoM)
+- ✅ History tables with last 12 observations
+- ✅ Escape key and backdrop click to close drawer
+- ✅ Smooth slide-in animations and transitions
 
 ### Future (Phase 4+)
 

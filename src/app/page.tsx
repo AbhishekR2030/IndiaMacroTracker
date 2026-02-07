@@ -6,6 +6,9 @@ import { Sidebar, type SidebarCategory } from "@/components/Sidebar";
 import { TopBar, type TimeRange, type TabType } from "@/components/TopBar";
 import { CardGrid } from "@/components/CardGrid";
 import { IndicatorCard } from "@/components/IndicatorCard";
+import { IndicatorDetailDrawer } from "@/components/IndicatorDetailDrawer";
+import { CalendarView } from "@/components/CalendarView";
+import { RiskDashboard } from "@/components/RiskDashboard";
 import { dataProvider } from "@/lib/providers";
 import { processIndicator, filterBySearch, sortByLatestRelease } from "@/lib/utils";
 import type { ProcessedIndicator } from "@/lib/types";
@@ -19,6 +22,8 @@ export default function Home() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [indicators, setIndicators] = useState<ProcessedIndicator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIndicator, setSelectedIndicator] = useState<ProcessedIndicator | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -205,13 +210,9 @@ export default function Home() {
           </div>
         </div>
       ) : activeCategory === "Calendar" ? (
-        <div className="text-center py-20 text-gray-500">
-          📅 Calendar view coming in Phase 3
-        </div>
+        <CalendarView />
       ) : activeTab === "Risk Dashboard" ? (
-        <div className="text-center py-20 text-gray-500">
-          🛡️ Risk Dashboard coming in Phase 3
-        </div>
+        <RiskDashboard indicators={indicators} />
       ) : (
         /* Card Grid */
         <>
@@ -233,8 +234,8 @@ export default function Home() {
                   isWatchlisted={watchlist.includes(ind.id)}
                   onToggleWatchlist={toggleWatchlist}
                   onClick={(indicator) => {
-                    console.log("Clicked:", indicator.name);
-                    // Phase 3: Open detail drawer
+                    setSelectedIndicator(indicator);
+                    setIsDrawerOpen(true);
                   }}
                 />
               ))}
@@ -242,6 +243,16 @@ export default function Home() {
           )}
         </>
       )}
+
+      {/* Indicator Detail Drawer */}
+      <IndicatorDetailDrawer
+        indicator={selectedIndicator}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedIndicator(null);
+        }}
+      />
     </AppShell>
   );
 }
