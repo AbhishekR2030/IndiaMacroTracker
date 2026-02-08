@@ -1,0 +1,25 @@
+# Render Blueprint - India Macro Tracker
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: india-macro-tracker
+    runtime: node
+    plan: starter  # Change to "standard" for better performance
+    buildCommand: npm install && npm run build
+    startCommand: node .next/standalone/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NEXT_PUBLIC_DATA_SOURCE
+        value: hybrid
+      - key: MOSPI_MCP_URL
+        value: https://mcp.mospi.gov.in
+      - key: RBI_DBIE_URL
+        value: https://dbie.rbi.org.in/DBIE/dbie.rbi
+      - key: NSE_API_URL
+        value: https://www.nseindia.com/api
+      - key: BSE_API_URL
+        value: https://api.bseindia.com
+      - key: PORT
+        value: 3000
