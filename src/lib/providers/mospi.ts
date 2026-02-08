@@ -3,7 +3,6 @@ import type {
   Observation,
   TimeSeriesData,
   SeriesOptions,
-  DataFilter,
 } from "../types";
 import type { DataProvider } from "./interface";
 
@@ -18,18 +17,18 @@ import type { DataProvider } from "./interface";
  * 4. get_data() - Fetch actual data
  */
 
-interface MoSPIDataset {
-  code: string;
-  name: string;
-  description: string;
+interface MoSPIObservation {
+  date: string;
+  value: number;
+  forecast?: number;
+}
+
+interface MoSPIResponse {
+  observations?: MoSPIObservation[];
 }
 
 // Cache for metadata to avoid repeated API calls
-const metadataCache: Map<string, any> = new Map();
-const overviewCache: { data: MoSPIDataset[] | null; timestamp: number } = {
-  data: null,
-  timestamp: 0,
-};
+const metadataCache: Map<string, Record<string, unknown>> = new Map();
 
 // Mapping from our indicator IDs to MoSPI datasets and filters
 const INDICATOR_MOSPI_MAP: Record<
@@ -81,43 +80,13 @@ const INDICATOR_MOSPI_MAP: Record<
 };
 
 /**
- * Fetch overview of all datasets (Tool 1)
- */
-async function fetchOverview(): Promise<MoSPIDataset[]> {
-  const now = Date.now();
-  const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-  // Return cached data if fresh
-  if (overviewCache.data && now - overviewCache.timestamp < CACHE_DURATION) {
-    return overviewCache.data;
-  }
-
-  try {
-    const response = await fetch("/api/mospi/overview");
-    const result = await response.json();
-
-    if (result.success && result.data) {
-      overviewCache.data = result.data.datasets || [];
-      overviewCache.timestamp = now;
-      return overviewCache.data;
-    }
-
-    throw new Error(result.error || "Failed to fetch overview");
-  } catch (error) {
-    console.error("Error fetching MoSPI overview:", error);
-    return [];
-  }
-}
-
-/**
  * Fetch metadata for a dataset (Tool 3)
  */
-async function fetchMetadata(dataset: string): Promise<any> {
+async function fetchMetadata(dataset: string): Promise<Record<string, unknown> | null> {
   const cacheKey = `metadata_${dataset}`;
 
-  // Check cache
   if (metadataCache.has(cacheKey)) {
-    return metadataCache.get(cacheKey);
+    return metadataCache.get(cacheKey) ?? null;
   }
 
   try {
@@ -142,7 +111,7 @@ async function fetchMetadata(dataset: string): Promise<any> {
 async function fetchMoSPIData(
   dataset: string,
   filters: Record<string, string>
-): Promise<any> {
+): Promise<MoSPIResponse | null> {
   try {
     const response = await fetch("/api/mospi/data", {
       method: "POST",
@@ -179,9 +148,7 @@ export function canFetchFromMoSPI(indicatorId: string): boolean {
  * MoSPI Data Provider implementation
  */
 export const mospiProvider: DataProvider = {
-  async getIndicators(filter?: DataFilter): Promise<Indicator[]> {
-    // For now, return empty array as we'll use hybrid provider
-    // which delegates to mock provider for the full list
+  async getIndicators(): Promise<Indicator[]> {
     return [];
   },
 
@@ -192,19 +159,16 @@ export const mospiProvider: DataProvider = {
       throw new Error(`Indicator ${indicatorId} not available from MoSPI`);
     }
 
-    // Fetch metadata first (required by MoSPI workflow)
     await fetchMetadata(config.dataset);
 
-    // Fetch data
     const data = await fetchMoSPIData(config.dataset, config.filters);
 
     if (!data || !data.observations || data.observations.length === 0) {
       throw new Error(`No data available for ${indicatorId}`);
     }
 
-    // Get the latest observation
     const sorted = [...data.observations].sort(
-      (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
     const latest = sorted[0];
@@ -229,23 +193,19 @@ export const mospiProvider: DataProvider = {
       throw new Error(`Indicator ${indicatorId} not available from MoSPI`);
     }
 
-    // Fetch metadata first
     await fetchMetadata(config.dataset);
 
-    // Fetch data
     const data = await fetchMoSPIData(config.dataset, config.filters);
 
     if (!data || !data.observations) {
       return [];
     }
 
-    // Transform to our TimeSeriesData format
-    let series: TimeSeriesData[] = data.observations.map((obs: any) => ({
+    let series: TimeSeriesData[] = data.observations.map((obs) => ({
       date: obs.date,
       value: obs.value,
     }));
 
-    // Apply date filtering if specified
     if (opts?.from) {
       const fromDate = new Date(opts.from);
       series = series.filter((d) => new Date(d.date) >= fromDate);
@@ -256,7 +216,6 @@ export const mospiProvider: DataProvider = {
       series = series.filter((d) => new Date(d.date) <= toDate);
     }
 
-    // Sort by date ascending
     series.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return series;
@@ -269,8 +228,6 @@ export const mospiProvider: DataProvider = {
       return null;
     }
 
-    // MoSPI doesn't provide release schedules yet
-    // Return estimated next release based on frequency
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 12);
 

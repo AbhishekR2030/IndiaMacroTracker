@@ -12,7 +12,7 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
 - ✅ **Phase 2: App Shell + Core Components** - Complete
 - ✅ **Phase 3: Detail View + Special Views** - Complete
 - ✅ **Phase 4: MoSPI MCP Integration** - Complete
-- 🚧 **Phase 5: Additional Data Sources** - Next
+- ✅ **Phase 5: Additional Data Sources** - Complete
 
 ## 📊 Features
 
@@ -70,13 +70,30 @@ A production-grade Next.js dashboard for tracking Indian macroeconomic indicator
 - NAS - National Accounts Statistics (GDP)
 - PLFS - Periodic Labour Force Survey (Unemployment, LFPR)
 
-### Future (Phase 5+)
+### Additional Data Sources (Phase 5)
 
-- RBI DBIE API integration (rates, credit, FX reserves)
-- NSE/BSE market data integration
+- ✅ **RBI DBIE API** integration for 11 indicators:
+  - Repo Rate, Reverse Repo, 10Y G-Sec, WALR
+  - Bank Credit Growth, Deposits Growth
+  - LAF Net Liquidity, M3 Growth
+  - FX Reserves, USD/INR, REER
+- ✅ **NSE/BSE Market Data** for 4 indices:
+  - Nifty 50, Nifty Bank (NSE)
+  - Sensex (BSE)
+  - India VIX (NSE)
+- ✅ **Priority-based hybrid provider** (MoSPI → RBI → NSE → Mock)
+- ✅ **Auto-refresh mechanism** with configurable intervals
+- ✅ **Source status bar** showing live connection status
+- ✅ **Data source badges** (MoSPI Live, RBI Live, NSE Live, Mock)
+- ✅ **Refresh controls** with countdown timer and manual trigger
+- ✅ Enhanced Settings page with source status and auto-refresh config
+
+### Future (Phase 6+)
+
 - Real-time updates via WebSockets
 - Alert notifications (email/push)
 - Data export (PDF/Excel)
+- CMIE integration (with subscription)
 
 ## 🛠️ Tech Stack
 
@@ -131,14 +148,25 @@ india-macro-tracker/
 │   │   ├── TopBar.tsx          # Search + filters
 │   │   ├── CardGrid.tsx        # Responsive grid
 │   │   ├── IndicatorCard.tsx   # Indicator display card
-│   │   └── Sparkline.tsx       # Mini chart component
+│   │   ├── Sparkline.tsx       # Mini chart component
+│   │   ├── IndicatorDetailDrawer.tsx  # Detail view
+│   │   ├── CalendarView.tsx    # Release calendar
+│   │   ├── RiskDashboard.tsx   # Risk assessment
+│   │   ├── DataSourceBadge.tsx # Source indicators
+│   │   └── RefreshControl.tsx  # Auto-refresh UI
+│   ├── hooks/
+│   │   └── useAutoRefresh.ts   # Auto-refresh hook
 │   └── lib/
 │       ├── tokens.ts           # Design tokens
 │       ├── types.ts            # TypeScript types
 │       ├── utils.ts            # Utility functions
 │       └── providers/
 │           ├── interface.ts    # DataProvider interface
-│           ├── mock.ts         # Mock data (Phase 1-3)
+│           ├── mock.ts         # Mock data (always available)
+│           ├── mospi.ts        # MoSPI MCP provider
+│           ├── rbi.ts          # RBI DBIE provider
+│           ├── nse.ts          # NSE/BSE provider
+│           ├── hybrid.ts       # Multi-source router
 │           └── index.ts        # Provider switcher
 ├── tailwind.config.ts
 ├── tsconfig.json
@@ -184,13 +212,15 @@ MIT
 
 ---
 
-**Note:** Phase 4 complete! The app now supports live data from the MoSPI eSankhyiki MCP Server. To enable:
+**Note:** Phase 5 complete! The app now supports live data from 3 sources. To enable:
 
 ```bash
 # In .env.local, change:
-NEXT_PUBLIC_DATA_SOURCE=hybrid  # Uses MoSPI for CPI/WPI/IIP/GDP/PLFS, mock for others
-# or
-NEXT_PUBLIC_DATA_SOURCE=mospi   # Uses only MoSPI (for testing)
+NEXT_PUBLIC_DATA_SOURCE=hybrid  # Recommended: MoSPI + RBI + NSE + mock fallback
+# or test individual sources:
+NEXT_PUBLIC_DATA_SOURCE=mospi   # MoSPI only
+NEXT_PUBLIC_DATA_SOURCE=rbi     # RBI only
+NEXT_PUBLIC_DATA_SOURCE=nse     # NSE/BSE only
 ```
 
-Currently defaults to `mock` for development. Live integration ready when MoSPI server is accessible.
+Currently defaults to `mock` for development stability. The hybrid provider will automatically use live sources when available and fall back to mock data when they're not.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Sidebar, type SidebarCategory } from "@/components/Sidebar";
 import { TopBar, type TimeRange, type TabType } from "@/components/TopBar";
@@ -9,8 +9,12 @@ import { IndicatorCard } from "@/components/IndicatorCard";
 import { IndicatorDetailDrawer } from "@/components/IndicatorDetailDrawer";
 import { CalendarView } from "@/components/CalendarView";
 import { RiskDashboard } from "@/components/RiskDashboard";
+import { SourceStatusBar } from "@/components/DataSourceBadge";
+import { RefreshControl } from "@/components/RefreshControl";
 import { dataProvider } from "@/lib/providers";
+import { getSourceStatuses } from "@/lib/providers/hybrid";
 import { processIndicator, filterBySearch, sortByLatestRelease } from "@/lib/utils";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import type { ProcessedIndicator } from "@/lib/types";
 
 export default function Home() {
@@ -24,34 +28,60 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedIndicator, setSelectedIndicator] = useState<ProcessedIndicator | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [sourceStatuses, setSourceStatuses] = useState<Record<string, boolean | null>>({
+    mospi: null,
+    rbi: null,
+    nse: null,
+  });
 
-  // Load data
-  useEffect(() => {
-    async function loadData() {
+  // Data loading function (reusable for refresh)
+  const loadData = useCallback(async () => {
+    try {
+      const allIndicators = await dataProvider.getIndicators();
+
+      const processed = await Promise.all(
+        allIndicators.map(async (ind) => {
+          const series = await dataProvider.getSeries(ind.id);
+          const latest = await dataProvider.getLatest(ind.id);
+          const nextRelease = await dataProvider.getNextRelease(ind.id);
+
+          return processIndicator(ind, series, latest, nextRelease);
+        })
+      );
+
+      setIndicators(processed);
+
+      // Update source statuses after data load
       try {
-        const allIndicators = await dataProvider.getIndicators();
-
-        // Process each indicator with its data
-        const processed = await Promise.all(
-          allIndicators.map(async (ind) => {
-            const series = await dataProvider.getSeries(ind.id);
-            const latest = await dataProvider.getLatest(ind.id);
-            const nextRelease = await dataProvider.getNextRelease(ind.id);
-
-            return processIndicator(ind, series, latest, nextRelease);
-          })
-        );
-
-        setIndicators(processed);
-      } catch (error) {
-        console.error("Failed to load indicators:", error);
-      } finally {
-        setLoading(false);
+        setSourceStatuses(getSourceStatuses());
+      } catch {
+        // getSourceStatuses may not be available in mock mode
       }
+    } catch (error) {
+      console.error("Failed to load indicators:", error);
+    } finally {
+      setLoading(false);
     }
-
-    loadData();
   }, []);
+
+  // Auto-refresh hook
+  const {
+    isRefreshing,
+    lastRefreshTime,
+    nextRefreshIn,
+    isEnabled: autoRefreshEnabled,
+    toggle: toggleAutoRefresh,
+    refreshNow,
+  } = useAutoRefresh({
+    interval: 5 * 60 * 1000, // 5 minutes
+    enabled: false, // Disabled by default, user can enable
+    onRefresh: loadData,
+  });
+
+  // Initial data load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Load watchlist from localStorage
   useEffect(() => {
@@ -117,6 +147,16 @@ export default function Home() {
           <div className="text-sm text-gray-500">
             Fetching 34 macroeconomic indicators
           </div>
+          {/* Loading skeleton */}
+          <div className="mt-6 flex justify-center gap-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -141,6 +181,19 @@ export default function Home() {
         />
       }
     >
+      {/* Source status bar */}
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+        <SourceStatusBar sources={sourceStatuses} />
+        <RefreshControl
+          isRefreshing={isRefreshing}
+          isEnabled={autoRefreshEnabled}
+          lastRefreshTime={lastRefreshTime}
+          nextRefreshIn={nextRefreshIn}
+          onToggle={toggleAutoRefresh}
+          onRefreshNow={refreshNow}
+        />
+      </div>
+
       {/* Category header */}
       {activeCategory !== "overview" &&
         activeCategory !== "settings" &&
@@ -188,24 +241,66 @@ export default function Home() {
       {activeCategory === "settings" ? (
         <div className="max-w-md">
           <h2 className="text-xl font-bold text-gray-900 mb-4">⚙️ Settings</h2>
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="text-[13px] font-semibold text-gray-900 mb-2">
-              Data Settings
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <div>
+              <div className="text-[13px] font-semibold text-gray-900 mb-2">
+                Data Sources
+              </div>
+              <div className="text-xs text-gray-500 mb-3">
+                Current data provider: <span className="font-semibold text-gray-700">{process.env.NEXT_PUBLIC_DATA_SOURCE || "mock"}</span>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(sourceStatuses).map(([name, status]) => (
+                  <div key={name} className="flex items-center justify-between py-1.5 px-3 bg-gray-50 rounded-lg">
+                    <span className="text-xs font-medium text-gray-700 uppercase">{name}</span>
+                    <span
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: status === true ? "#ECFDF5" : status === false ? "#FEF2F2" : "#F3F4F6",
+                        color: status === true ? "#059669" : status === false ? "#DC2626" : "#6B7280",
+                      }}
+                    >
+                      {status === true ? "Connected" : status === false ? "Offline" : "Not checked"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="text-xs text-gray-500 mb-4">
-              Configure data sources, API keys, and refresh intervals. Coming soon in the live version.
+            <div>
+              <div className="text-[13px] font-semibold text-gray-900 mb-2">
+                Auto-Refresh
+              </div>
+              <div className="text-xs text-gray-500 mb-2">
+                {autoRefreshEnabled
+                  ? `Auto-refresh is enabled (every 5 minutes). Next refresh in ${Math.floor(nextRefreshIn / 60)}m ${nextRefreshIn % 60}s.`
+                  : "Auto-refresh is disabled. Enable it to get automatic data updates."}
+              </div>
+              <button
+                onClick={toggleAutoRefresh}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: autoRefreshEnabled ? "#FEF2F2" : "#ECFDF5",
+                  color: autoRefreshEnabled ? "#DC2626" : "#059669",
+                }}
+              >
+                {autoRefreshEnabled ? "Disable Auto-Refresh" : "Enable Auto-Refresh"}
+              </button>
             </div>
-            <div className="text-[13px] font-semibold text-gray-900 mb-2">
-              Notifications
+            <div>
+              <div className="text-[13px] font-semibold text-gray-900 mb-2">
+                Notifications
+              </div>
+              <div className="text-xs text-gray-500">
+                Email and push alert preferences. Coming soon.
+              </div>
             </div>
-            <div className="text-xs text-gray-500 mb-4">
-              Email and push alert preferences. Coming soon.
-            </div>
-            <div className="text-[13px] font-semibold text-gray-900 mb-2">
-              Watchlist
-            </div>
-            <div className="text-xs text-gray-500">
-              You have {watchlist.length} indicators in your watchlist.
+            <div>
+              <div className="text-[13px] font-semibold text-gray-900 mb-2">
+                Watchlist
+              </div>
+              <div className="text-xs text-gray-500">
+                You have {watchlist.length} indicators in your watchlist.
+              </div>
             </div>
           </div>
         </div>
