@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CATEGORY_MAP } from "@/lib/tokens";
 import { Sparkline } from "./Sparkline";
+import { DataSourceBadge } from "./DataSourceBadge";
 import type { ProcessedIndicator, Status } from "@/lib/types";
 
 interface IndicatorCardProps {
@@ -116,8 +117,16 @@ export function IndicatorCard({
 
           {/* Title and metadata */}
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-[650] text-gray-900 leading-tight">
-              {indicator.name}
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-[13px] font-[650] text-gray-900 leading-tight">
+                {indicator.name}
+              </div>
+              {/* Data source badge - shows if data is Mock or Live */}
+              {indicator.liveSource && (
+                <div className="shrink-0">
+                  <DataSourceBadge source={indicator.liveSource} size="sm" />
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <span

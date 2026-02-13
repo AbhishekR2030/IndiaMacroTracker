@@ -86,6 +86,7 @@ export interface ProcessedIndicator extends Indicator {
   status: Status;
   series: TimeSeriesData[];
   nextRelease?: string;
+  liveSource?: "MoSPI" | "RBI" | "NSE" | "Mock"; // Which live data source was used
 }
 
 // Filter options for data queries

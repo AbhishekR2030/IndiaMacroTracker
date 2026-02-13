@@ -36,6 +36,10 @@ const sourceStatus: Record<string, { available: boolean | null; lastCheck: numbe
 };
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
+// Flag to track if initial check is in progress
+let initialCheckInProgress = false;
+let initialCheckPromise: Promise<void> | null = null;
+
 /**
  * Check if a specific source is available
  */
@@ -65,7 +69,7 @@ async function checkSourceAvailability(source: string): Promise<boolean> {
     }
 
     const response = await fetch(url, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(2000), // Reduced from 5s to 2s for faster failure
     });
 
     const result = await response.json();
@@ -86,9 +90,39 @@ async function checkSourceAvailability(source: string): Promise<boolean> {
 }
 
 /**
+ * Pre-check all sources in parallel (called once at startup)
+ * This prevents the first data load from being slow
+ */
+async function checkAllSourcesInitial(): Promise<void> {
+  if (initialCheckInProgress) {
+    return initialCheckPromise!;
+  }
+
+  initialCheckInProgress = true;
+  initialCheckPromise = Promise.all([
+    checkSourceAvailability("mospi"),
+    checkSourceAvailability("rbi"),
+    checkSourceAvailability("nse"),
+  ]).then(() => {
+    console.log("✅ Initial source availability check complete:", {
+      mospi: sourceStatus.mospi.available,
+      rbi: sourceStatus.rbi.available,
+      nse: sourceStatus.nse.available,
+    });
+  });
+
+  return initialCheckPromise;
+}
+
+/**
  * Decide which provider to use for an indicator (priority-based routing)
  */
 async function selectProvider(indicatorId: string): Promise<{ provider: DataProvider; source: LiveSource }> {
+  // Ensure initial check is complete before selecting provider
+  if (!initialCheckInProgress) {
+    await checkAllSourcesInitial();
+  }
+
   // Priority 1: MoSPI (government statistics)
   if (canFetchFromMoSPI(indicatorId)) {
     const available = await checkSourceAvailability("mospi");

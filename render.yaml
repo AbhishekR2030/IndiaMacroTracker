@@ -12,7 +12,7 @@ services:
       - key: NODE_VERSION
         value: 20.11.0
       - key: NEXT_PUBLIC_DATA_SOURCE
-        value: hybrid
+        value: mock  # Use "hybrid" when live APIs are available
       - key: MOSPI_MCP_URL
         value: https://mcp.mospi.gov.in
       - key: RBI_DBIE_URL

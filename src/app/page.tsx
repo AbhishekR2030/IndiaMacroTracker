@@ -12,10 +12,10 @@ import { RiskDashboard } from "@/components/RiskDashboard";
 import { SourceStatusBar } from "@/components/DataSourceBadge";
 import { RefreshControl } from "@/components/RefreshControl";
 import { dataProvider } from "@/lib/providers";
-import { getSourceStatuses } from "@/lib/providers/hybrid";
+import { getSourceStatuses, getDataSource } from "@/lib/providers/hybrid";
 import { processIndicator, filterBySearch, sortByLatestRelease } from "@/lib/utils";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
-import type { ProcessedIndicator } from "@/lib/types";
+import type { ProcessedIndicator, Status } from "@/lib/types";
 
 export default function Home() {
   // State
@@ -26,6 +26,7 @@ export default function Home() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [indicators, setIndicators] = useState<ProcessedIndicator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIndicator, setSelectedIndicator] = useState<ProcessedIndicator | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [sourceStatuses, setSourceStatuses] = useState<Record<string, boolean | null>>({
@@ -36,18 +37,57 @@ export default function Home() {
 
   // Data loading function (reusable for refresh)
   const loadData = useCallback(async () => {
+    setError(null);
+    const timeout = setTimeout(() => {
+      console.warn("⚠️ Data loading is taking longer than expected. The app may be experiencing network issues.");
+    }, 10000); // Warn after 10 seconds
+
+    // Absolute timeout - if data doesn't load in 30 seconds, show error
+    const abortTimeout = setTimeout(() => {
+      setError("Data loading timed out. Using fallback mock data.");
+      setLoading(false);
+    }, 30000);
+
     try {
       const allIndicators = await dataProvider.getIndicators();
 
       const processed = await Promise.all(
         allIndicators.map(async (ind) => {
-          const series = await dataProvider.getSeries(ind.id);
-          const latest = await dataProvider.getLatest(ind.id);
-          const nextRelease = await dataProvider.getNextRelease(ind.id);
+          try {
+            const series = await dataProvider.getSeries(ind.id);
+            const latest = await dataProvider.getLatest(ind.id);
+            const nextRelease = await dataProvider.getNextRelease(ind.id);
 
-          return processIndicator(ind, series, latest, nextRelease);
+            const processedInd = await processIndicator(ind, series, latest, nextRelease);
+
+            // Capture which live source was actually used (for hybrid mode)
+            try {
+              const liveSource = getDataSource(ind.id);
+              return { ...processedInd, liveSource };
+            } catch {
+              // getDataSource may not be available in pure mock mode
+              return processedInd;
+            }
+          } catch (indError) {
+            console.error(`Error processing indicator ${ind.id}:`, indError);
+            // Return a basic processed indicator with error state
+            return {
+              ...ind,
+              latestValue: 0,
+              latestDate: new Date().toISOString().split('T')[0],
+              prior: 0,
+              change: 0,
+              changePct: 0,
+              status: "Neutral" as Status,
+              series: [],
+              liveSource: "Mock" as const,
+            };
+          }
         })
       );
+
+      clearTimeout(timeout);
+      clearTimeout(abortTimeout);
 
       setIndicators(processed);
 
@@ -58,8 +98,13 @@ export default function Home() {
         // getSourceStatuses may not be available in mock mode
       }
     } catch (error) {
+      clearTimeout(timeout);
+      clearTimeout(abortTimeout);
       console.error("Failed to load indicators:", error);
+      setError(error instanceof Error ? error.message : "Failed to load data");
     } finally {
+      clearTimeout(timeout);
+      clearTimeout(abortTimeout);
       setLoading(false);
     }
   }, []);
@@ -156,6 +201,39 @@ export default function Home() {
                 style={{ animationDelay: `${i * 0.15}s` }}
               />
             ))}
+          </div>
+          <div className="mt-4 text-xs text-gray-400">
+            This may take a moment on first load...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md px-4">
+          <div className="text-4xl mb-4">⚠️</div>
+          <div className="text-xl font-bold text-gray-900 mb-2">
+            Failed to Load Data
+          </div>
+          <div className="text-sm text-gray-600 mb-6">
+            {error}
+          </div>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              loadData();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+          <div className="mt-4 text-xs text-gray-500">
+            If this persists, please check your network connection or try again later.
           </div>
         </div>
       </div>
