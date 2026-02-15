@@ -4,40 +4,23 @@ import type { Category } from "./tokens";
 export type DataSource =
   | "MoSPI"
   | "RBI"
-  | "NSE"
-  | "BSE"
-  | "S&P Global"
-  | "CMIE"
-  | "CCIL"
-  | "MoF"
-  | "MoCI"
-  | "DPIIT"
-  | "CGA"
-  | "ICE/RBI"
-  | "MCX/IBJA";
+  | "NSE";
 
 // Frequency types
 export type Frequency =
   | "Monthly"
   | "Quarterly"
-  | "Weekly"
   | "Daily"
   | "Bi-monthly"
-  | "Bi-weekly"
-  | "Annual";
+  | "Bi-weekly";
 
 // Unit types
 export type Unit =
   | "%"
   | "Index"
   | "₹ Lakh Cr"
-  | "$ Bn"
   | "₹"
-  | "₹/10g"
-  | "₹/bbl"
-  | "% YoY"
-  | "% of BE"
-  | "% of GDP";
+  | "% YoY";
 
 // Transform types
 export type Transform = "Level" | "YoY" | "MoM";

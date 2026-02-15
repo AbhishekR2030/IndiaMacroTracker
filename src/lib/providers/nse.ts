@@ -7,16 +7,15 @@ import type {
 import type { DataProvider } from "./interface";
 
 /**
- * NSE/BSE Market Data Provider
+ * NSE Market Data Provider
  *
- * Integrates with NSE India and BSE APIs for real-time market data:
- * - Nifty 50 index
- * - Nifty Bank index
- * - Sensex (BSE)
- * - India VIX (volatility index)
+ * Integrates with NSE India API for real-time market data:
+ * - Nifty 50 (broad market)
+ * - Nifty Bank (banking sector)
+ * - India VIX (volatility)
+ * - Sector indices: IT, FMCG, Pharma, Auto, Metal, Energy, PSU Bank, Financial Services
  *
  * NSE API: https://www.nseindia.com/api
- * BSE API: https://api.bseindia.com
  */
 
 interface MarketQuote {
@@ -43,7 +42,8 @@ const MARKET_SYMBOL_MAP: Record<
     indexType?: string;
   }
 > = {
-  "nifty-50": {
+  // ─── Broad Market ───
+  nifty50: {
     symbol: "NIFTY 50",
     exchange: "NSE",
     indexType: "broad",
@@ -53,15 +53,52 @@ const MARKET_SYMBOL_MAP: Record<
     exchange: "NSE",
     indexType: "sectoral",
   },
-  sensex: {
-    symbol: "SENSEX",
-    exchange: "BSE",
-    indexType: "broad",
-  },
   "india-vix": {
     symbol: "INDIA VIX",
     exchange: "NSE",
     indexType: "volatility",
+  },
+
+  // ─── Sector Indices ───
+  "nifty-it": {
+    symbol: "NIFTY IT",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-fmcg": {
+    symbol: "NIFTY FMCG",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-pharma": {
+    symbol: "NIFTY PHARMA",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-auto": {
+    symbol: "NIFTY AUTO",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-metal": {
+    symbol: "NIFTY METAL",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-energy": {
+    symbol: "NIFTY ENERGY",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-psu-bank": {
+    symbol: "NIFTY PSU BANK",
+    exchange: "NSE",
+    indexType: "sectoral",
+  },
+  "nifty-fin-services": {
+    symbol: "NIFTY FIN SERVICE",
+    exchange: "NSE",
+    indexType: "sectoral",
   },
 };
 

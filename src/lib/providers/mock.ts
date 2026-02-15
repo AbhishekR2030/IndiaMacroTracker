@@ -34,7 +34,8 @@ function generateSeries(
 }
 
 /**
- * Mock indicators - 34 realistic Indian macroeconomic indicators
+ * Mock indicators - 24 Indian macroeconomic indicators (all with live data sources)
+ * Used as fallback data when live APIs are unavailable
  */
 const MOCK_INDICATORS: Array<
   Indicator & {
@@ -43,7 +44,7 @@ const MOCK_INDICATORS: Array<
     nextRelease?: string;
   }
 > = [
-  // ─── INFLATION (4 indicators) ───
+  // ─── INFLATION (3 indicators) ───
   {
     id: "cpi-headline",
     name: "CPI Headline (YoY)",
@@ -60,26 +61,12 @@ const MOCK_INDICATORS: Array<
     nextRelease: "2026-03-14",
   },
   {
-    id: "cpi-core",
-    name: "CPI Core (YoY)",
-    category: "Inflation",
-    unit: "%",
-    frequency: "Monthly",
-    source: "MoSPI",
-    description: "CPI excluding food and fuel - core inflation measure",
-    transformOptions: ["Level", "YoY", "MoM"],
-    tags: ["inflation", "consumer-prices", "core"],
-    series: generateSeries(4.2, 0.2, 24),
-    forecast: 4.1,
-    nextRelease: "2026-03-14",
-  },
-  {
     id: "wpi",
     name: "WPI (YoY)",
     category: "Inflation",
     unit: "%",
     frequency: "Monthly",
-    source: "DPIIT",
+    source: "MoSPI",
     description: "Wholesale Price Index inflation - all commodities",
     transformOptions: ["Level", "YoY", "MoM"],
     tags: ["inflation", "wholesale-prices"],
@@ -102,7 +89,7 @@ const MOCK_INDICATORS: Array<
     nextRelease: "2026-03-14",
   },
 
-  // ─── GROWTH (5 indicators) ───
+  // ─── GROWTH (2 indicators) ───
   {
     id: "gdp-yoy",
     name: "GDP Growth (YoY)",
@@ -131,59 +118,16 @@ const MOCK_INDICATORS: Array<
     forecast: 4.8,
     nextRelease: "2026-03-12",
   },
-  {
-    id: "pmi-mfg",
-    name: "PMI Manufacturing",
-    category: "Growth",
-    unit: "Index",
-    frequency: "Monthly",
-    source: "S&P Global",
-    description: "Purchasing Managers Index - Manufacturing sector",
-    transformOptions: ["Level"],
-    tags: ["growth", "pmi", "manufacturing"],
-    series: generateSeries(56.5, 1.5, 24),
-    forecast: 57.0,
-    nextRelease: "2026-03-03",
-  },
-  {
-    id: "pmi-services",
-    name: "PMI Services",
-    category: "Growth",
-    unit: "Index",
-    frequency: "Monthly",
-    source: "S&P Global",
-    description: "Purchasing Managers Index - Services sector",
-    transformOptions: ["Level"],
-    tags: ["growth", "pmi", "services"],
-    series: generateSeries(58.2, 1.2, 24),
-    forecast: 58.5,
-    nextRelease: "2026-03-05",
-  },
-  {
-    id: "gst-collections",
-    name: "GST Collections",
-    category: "Growth",
-    unit: "₹ Lakh Cr",
-    frequency: "Monthly",
-    source: "MoF",
-    description: "Goods & Services Tax monthly gross collections",
-    transformOptions: ["Level", "YoY"],
-    tags: ["growth", "tax-revenue", "gst"],
-    series: generateSeries(1.72, 0.08, 24, 0.015),
-    forecast: 1.85,
-    nextRelease: "2026-03-01",
-  },
 
-  // ─── LABOUR (3 indicators) ───
+  // ─── LABOUR (2 indicators) ───
   {
     id: "unemployment",
     name: "Unemployment Rate",
     category: "Labour",
     unit: "%",
     frequency: "Monthly",
-    source: "CMIE",
-    description:
-      "Urban+Rural unemployment rate from CMIE Consumer Pyramids Household Survey",
+    source: "MoSPI",
+    description: "Unemployment rate from Periodic Labour Force Survey (PLFS)",
     transformOptions: ["Level"],
     tags: ["labour", "unemployment"],
     series: generateSeries(7.8, 0.6, 24, -0.02),
@@ -203,21 +147,8 @@ const MOCK_INDICATORS: Array<
     series: generateSeries(41.2, 0.5, 12),
     nextRelease: "2026-06-30",
   },
-  {
-    id: "employment-rate",
-    name: "Employment Rate",
-    category: "Labour",
-    unit: "%",
-    frequency: "Monthly",
-    source: "CMIE",
-    description: "Worker population ratio - employed as % of working age population",
-    transformOptions: ["Level"],
-    tags: ["labour", "employment"],
-    series: generateSeries(37.5, 0.4, 24),
-    nextRelease: "2026-03-15",
-  },
 
-  // ─── RATES & CREDIT (5 indicators) ───
+  // ─── RATES & CREDIT (4 indicators) ───
   {
     id: "repo-rate",
     name: "RBI Repo Rate",
@@ -230,7 +161,7 @@ const MOCK_INDICATORS: Array<
     tags: ["rates", "monetary-policy", "rbi"],
     series: generateSeries(6.5, 0.0, 12).map((d, i) => ({
       ...d,
-      value: i > 9 ? 6.25 : 6.5, // Recent rate cut
+      value: i > 9 ? 6.25 : 6.5,
     })),
     forecast: 6.0,
     nextRelease: "2026-04-09",
@@ -241,23 +172,11 @@ const MOCK_INDICATORS: Array<
     category: "Rates & Credit",
     unit: "%",
     frequency: "Daily",
-    source: "CCIL",
+    source: "RBI",
     description: "10-year Government Security benchmark yield",
     transformOptions: ["Level"],
     tags: ["rates", "bonds", "yields"],
     series: generateSeries(6.85, 0.08, 24, -0.01),
-  },
-  {
-    id: "gsec-2y",
-    name: "G-Sec 2Y Yield",
-    category: "Rates & Credit",
-    unit: "%",
-    frequency: "Daily",
-    source: "CCIL",
-    description: "2-year Government Security yield",
-    transformOptions: ["Level"],
-    tags: ["rates", "bonds", "yields"],
-    series: generateSeries(6.55, 0.06, 24, -0.01),
   },
   {
     id: "bank-credit",
@@ -286,7 +205,7 @@ const MOCK_INDICATORS: Array<
     nextRelease: "2026-03-28",
   },
 
-  // ─── FX (2 indicators) ───
+  // ─── FX (1 indicator) ───
   {
     id: "usdinr",
     name: "USD/INR",
@@ -299,21 +218,8 @@ const MOCK_INDICATORS: Array<
     tags: ["fx", "exchange-rate", "dollar"],
     series: generateSeries(83.5, 0.3, 24, 0.08),
   },
-  {
-    id: "reer",
-    name: "REER (36-currency)",
-    category: "FX",
-    unit: "Index",
-    frequency: "Monthly",
-    source: "RBI",
-    description: "Real Effective Exchange Rate (36-currency basket)",
-    transformOptions: ["Level"],
-    tags: ["fx", "reer", "competitiveness"],
-    series: generateSeries(104.5, 0.8, 24),
-    nextRelease: "2026-03-15",
-  },
 
-  // ─── LIQUIDITY & MONEY (3 indicators) ───
+  // ─── LIQUIDITY & MONEY (1 indicator) ───
   {
     id: "laf-liquidity",
     name: "LAF Net Liquidity",
@@ -326,77 +232,8 @@ const MOCK_INDICATORS: Array<
     tags: ["liquidity", "money-market", "laf"],
     series: generateSeries(-0.5, 0.4, 24),
   },
-  {
-    id: "m3-growth",
-    name: "M3 Growth (YoY)",
-    category: "Liquidity & Money",
-    unit: "%",
-    frequency: "Bi-weekly",
-    source: "RBI",
-    description: "Broad money supply (M3) growth year-on-year",
-    transformOptions: ["Level"],
-    tags: ["money-supply", "liquidity"],
-    series: generateSeries(10.8, 0.4, 24),
-    nextRelease: "2026-03-07",
-  },
-  {
-    id: "deposits-growth",
-    name: "Bank Deposits Growth",
-    category: "Liquidity & Money",
-    unit: "% YoY",
-    frequency: "Bi-weekly",
-    source: "RBI",
-    description: "Aggregate deposits growth of Scheduled Commercial Banks",
-    transformOptions: ["Level"],
-    tags: ["deposits", "banking"],
-    series: generateSeries(12.5, 0.5, 24),
-    nextRelease: "2026-03-07",
-  },
 
-  // ─── EXTERNAL SECTOR (3 indicators) ───
-  {
-    id: "trade-balance",
-    name: "Trade Balance",
-    category: "External Sector",
-    unit: "$ Bn",
-    frequency: "Monthly",
-    source: "MoCI",
-    description: "Merchandise trade balance (exports minus imports)",
-    transformOptions: ["Level"],
-    tags: ["trade", "external-sector"],
-    series: generateSeries(-22.5, 2.5, 24),
-    forecast: -21.0,
-    nextRelease: "2026-03-15",
-  },
-  {
-    id: "current-account",
-    name: "Current Account (% GDP)",
-    category: "External Sector",
-    unit: "% of GDP",
-    frequency: "Quarterly",
-    source: "RBI",
-    description: "Current account balance as share of GDP",
-    transformOptions: ["Level"],
-    tags: ["external-sector", "current-account"],
-    series: generateSeries(-1.2, 0.3, 12),
-    forecast: -1.0,
-    nextRelease: "2026-06-30",
-  },
-  {
-    id: "fx-reserves",
-    name: "FX Reserves",
-    category: "External Sector",
-    unit: "$ Bn",
-    frequency: "Weekly",
-    source: "RBI",
-    description: "India's foreign exchange reserves",
-    transformOptions: ["Level"],
-    tags: ["external-sector", "reserves", "fx"],
-    series: generateSeries(620, 8, 24, 2),
-    nextRelease: "2026-02-14",
-  },
-
-  // ─── MARKETS (6 indicators) ───
+  // ─── MARKETS (11 indicators) ───
   {
     id: "nifty50",
     name: "Nifty 50",
@@ -404,22 +241,10 @@ const MOCK_INDICATORS: Array<
     unit: "Index",
     frequency: "Daily",
     source: "NSE",
-    description: "NSE Nifty 50 index",
+    description: "NSE Nifty 50 broad market index",
     transformOptions: ["Level", "YoY"],
     tags: ["markets", "equity", "nifty"],
     series: generateSeries(22500, 400, 24, 120),
-  },
-  {
-    id: "sensex",
-    name: "Sensex",
-    category: "Markets",
-    unit: "Index",
-    frequency: "Daily",
-    source: "BSE",
-    description: "BSE Sensex 30 index",
-    transformOptions: ["Level", "YoY"],
-    tags: ["markets", "equity", "sensex"],
-    series: generateSeries(74000, 1200, 24, 400),
   },
   {
     id: "nifty-bank",
@@ -446,70 +271,100 @@ const MOCK_INDICATORS: Array<
     series: generateSeries(13.5, 1.5, 24),
   },
   {
-    id: "brent",
-    name: "Brent Crude (INR)",
+    id: "nifty-it",
+    name: "Nifty IT",
     category: "Markets",
-    unit: "₹/bbl",
+    unit: "Index",
     frequency: "Daily",
-    source: "ICE/RBI",
-    description: "Brent crude oil price in INR terms (per barrel)",
+    source: "NSE",
+    description: "NSE Nifty IT sectoral index - Information Technology",
     transformOptions: ["Level", "YoY"],
-    tags: ["commodities", "oil", "energy"],
-    series: generateSeries(6800, 300, 24, 20),
+    tags: ["markets", "equity", "it", "sectoral"],
+    series: generateSeries(34000, 600, 24, 150),
   },
   {
-    id: "gold-inr",
-    name: "Gold (INR)",
+    id: "nifty-fmcg",
+    name: "Nifty FMCG",
     category: "Markets",
-    unit: "₹/10g",
+    unit: "Index",
     frequency: "Daily",
-    source: "MCX/IBJA",
-    description: "Gold price per 10 grams in INR",
+    source: "NSE",
+    description: "NSE Nifty FMCG sectoral index - Fast Moving Consumer Goods",
     transformOptions: ["Level", "YoY"],
-    tags: ["commodities", "gold"],
-    series: generateSeries(62000, 1500, 24, 600),
-  },
-
-  // ─── FISCAL (3 indicators) ───
-  {
-    id: "fiscal-deficit",
-    name: "Fiscal Deficit (FYTD)",
-    category: "Fiscal",
-    unit: "% of BE",
-    frequency: "Monthly",
-    source: "CGA",
-    description:
-      "Fiscal deficit as % of Budget Estimate, fiscal year to date",
-    transformOptions: ["Level"],
-    tags: ["fiscal", "deficit"],
-    series: generateSeries(55, 5, 12),
-    nextRelease: "2026-03-31",
+    tags: ["markets", "equity", "fmcg", "sectoral"],
+    series: generateSeries(56000, 800, 24, 200),
   },
   {
-    id: "tax-collections",
-    name: "Gross Tax Collections",
-    category: "Fiscal",
-    unit: "₹ Lakh Cr",
-    frequency: "Monthly",
-    source: "MoF",
-    description: "Gross tax revenue collections fiscal year to date",
+    id: "nifty-pharma",
+    name: "Nifty Pharma",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty Pharma sectoral index - Pharmaceutical",
     transformOptions: ["Level", "YoY"],
-    tags: ["fiscal", "tax-revenue"],
-    series: generateSeries(18.5, 0.8, 12, 0.3),
-    nextRelease: "2026-03-31",
+    tags: ["markets", "equity", "pharma", "sectoral"],
+    series: generateSeries(19000, 400, 24, 100),
   },
   {
-    id: "debt-gdp",
-    name: "Debt-to-GDP",
-    category: "Fiscal",
-    unit: "%",
-    frequency: "Annual",
-    source: "MoF",
-    description: "General government debt as share of GDP",
-    transformOptions: ["Level"],
-    tags: ["fiscal", "debt"],
-    series: generateSeries(82, 0.5, 8, -0.3),
-    nextRelease: "2026-07-31",
+    id: "nifty-auto",
+    name: "Nifty Auto",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty Auto sectoral index - Automobile",
+    transformOptions: ["Level", "YoY"],
+    tags: ["markets", "equity", "auto", "sectoral"],
+    series: generateSeries(24000, 500, 24, 130),
+  },
+  {
+    id: "nifty-metal",
+    name: "Nifty Metal",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty Metal sectoral index - Metal & Mining",
+    transformOptions: ["Level", "YoY"],
+    tags: ["markets", "equity", "metal", "sectoral"],
+    series: generateSeries(8500, 300, 24, 50),
+  },
+  {
+    id: "nifty-energy",
+    name: "Nifty Energy",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty Energy sectoral index - Energy",
+    transformOptions: ["Level", "YoY"],
+    tags: ["markets", "equity", "energy", "sectoral"],
+    series: generateSeries(38000, 700, 24, 180),
+  },
+  {
+    id: "nifty-psu-bank",
+    name: "Nifty PSU Bank",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty PSU Bank sectoral index - Public Sector Banks",
+    transformOptions: ["Level", "YoY"],
+    tags: ["markets", "equity", "banking", "psu", "sectoral"],
+    series: generateSeries(7000, 250, 24, 80),
+  },
+  {
+    id: "nifty-fin-services",
+    name: "Nifty Financial Services",
+    category: "Markets",
+    unit: "Index",
+    frequency: "Daily",
+    source: "NSE",
+    description: "NSE Nifty Financial Services sectoral index",
+    transformOptions: ["Level", "YoY"],
+    tags: ["markets", "equity", "financial", "sectoral"],
+    series: generateSeries(23000, 450, 24, 120),
   },
 ];
 
@@ -542,6 +397,7 @@ export class MockDataProvider implements DataProvider {
     }
 
     // Return without series data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return indicators.map(({ series, forecast, nextRelease, ...ind }) => ind);
   }
 

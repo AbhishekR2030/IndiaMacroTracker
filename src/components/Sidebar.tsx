@@ -20,9 +20,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "Rates & Credit", label: "Rates & Credit", icon: "🏦", color: CATEGORY_MAP["Rates & Credit"].color },
   { id: "FX", label: "FX", icon: "💱", color: CATEGORY_MAP.FX.color },
   { id: "Liquidity & Money", label: "Liquidity", icon: "💧", color: CATEGORY_MAP["Liquidity & Money"].color },
-  { id: "External Sector", label: "External", icon: "🌍", color: CATEGORY_MAP["External Sector"].color },
   { id: "Markets", label: "Markets", icon: "📉", color: CATEGORY_MAP.Markets.color },
-  { id: "Fiscal", label: "Fiscal", icon: "🏛️", color: CATEGORY_MAP.Fiscal.color },
   { id: "Calendar", label: "Calendar", icon: "📅", color: "#A3B6C9" },
   { id: "settings", label: "Settings", icon: "⚙️", color: "#6B7280" },
 ];

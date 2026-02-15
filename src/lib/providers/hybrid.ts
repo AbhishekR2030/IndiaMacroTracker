@@ -17,10 +17,10 @@ import { nseProvider, canFetchFromNSE } from "./nse";
  * Intelligently combines multiple data sources with priority-based routing:
  *
  * Priority order per indicator:
- * 1. MoSPI MCP  → CPI, WPI, IIP, GDP, PLFS (Inflation, Growth, Labour)
- * 2. RBI DBIE   → Repo Rate, G-Sec, WALR, Credit, Deposits, LAF, M3, FX Reserves, USD/INR, REER
- * 3. NSE/BSE    → Nifty 50, Nifty Bank, Sensex, India VIX
- * 4. Mock       → Fallback for everything else or when live sources are unavailable
+ * 1. MoSPI  → CPI, WPI, IIP, GDP, PLFS (Inflation, Growth, Labour)
+ * 2. RBI    → Repo Rate, G-Sec 10Y, WALR, Bank Credit, USD/INR, LAF Liquidity
+ * 3. NSE    → Nifty 50, Bank, VIX + sector indices (IT, FMCG, Pharma, Auto, Metal, Energy, PSU Bank, Fin Services)
+ * 4. Mock   → Fallback when live sources are unavailable
  *
  * Each source gracefully degrades to mock on failure.
  */
@@ -36,81 +36,96 @@ const sourceStatus: Record<string, { available: boolean | null; lastCheck: numbe
 };
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-// Flag to track if initial check is in progress
-let initialCheckInProgress = false;
+// Per-source check deduplication: prevent concurrent health checks for the same source
+const pendingChecks: Map<string, Promise<boolean>> = new Map();
+
+// Initial check promise - all callers await the same promise
 let initialCheckPromise: Promise<void> | null = null;
 
 /**
- * Check if a specific source is available
+ * Check if a specific source is available (with deduplication).
+ * Multiple concurrent callers for the same source will share one in-flight check.
  */
 async function checkSourceAvailability(source: string): Promise<boolean> {
   const now = Date.now();
   const status = sourceStatus[source];
 
+  // Return cached result if still valid
   if (status.available !== null && now - status.lastCheck < CHECK_INTERVAL) {
     return status.available;
   }
 
-  try {
-    let url: string;
-    switch (source) {
-      case "mospi":
-        url = "/api/mospi/overview";
-        break;
-      case "rbi":
-        url = "/api/rbi/data?series=RLCR_A_001&from=" +
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-        break;
-      case "nse":
-        url = "/api/nse/data?symbol=" + encodeURIComponent("NIFTY 50") + "&exchange=NSE";
-        break;
-      default:
-        return false;
-    }
-
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(2000), // Reduced from 5s to 2s for faster failure
-    });
-
-    const result = await response.json();
-    status.available = result.success === true;
-    status.lastCheck = now;
-
-    if (!status.available) {
-      console.warn(`⚠️ ${source.toUpperCase()} unavailable - using mock fallback`);
-    }
-
-    return status.available;
-  } catch (error) {
-    console.warn(`⚠️ ${source.toUpperCase()} check failed - using mock:`, error);
-    status.available = false;
-    status.lastCheck = now;
-    return false;
+  // If a check is already in flight for this source, await it
+  const pending = pendingChecks.get(source);
+  if (pending) {
+    return pending;
   }
+
+  // Start a new check and store the promise so concurrent callers share it
+  const checkPromise = (async (): Promise<boolean> => {
+    try {
+      let url: string;
+      switch (source) {
+        case "mospi":
+          url = "/api/mospi/overview";
+          break;
+        case "rbi":
+          url = "/api/rbi/data?type=health";
+          break;
+        case "nse":
+          url = "/api/nse/data?symbol=" + encodeURIComponent("NIFTY 50") + "&exchange=NSE";
+          break;
+        default:
+          return false;
+      }
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(5000), // 5s timeout for health checks
+      });
+
+      const result = await response.json();
+      status.available = result.success === true;
+      status.lastCheck = Date.now();
+
+      if (!status.available) {
+        console.warn(`⚠️ ${source.toUpperCase()} unavailable - using mock fallback`);
+      }
+
+      return status.available;
+    } catch (error) {
+      console.warn(`⚠️ ${source.toUpperCase()} check failed - using mock:`, error);
+      status.available = false;
+      status.lastCheck = Date.now();
+      return false;
+    } finally {
+      pendingChecks.delete(source);
+    }
+  })();
+
+  pendingChecks.set(source, checkPromise);
+  return checkPromise;
 }
 
 /**
- * Pre-check all sources in parallel (called once at startup)
- * This prevents the first data load from being slow
+ * Pre-check all sources in parallel (called once at startup).
+ * All callers await the same promise, ensuring the check runs exactly once.
  */
-async function checkAllSourcesInitial(): Promise<void> {
-  if (initialCheckInProgress) {
-    return initialCheckPromise!;
+async function ensureInitialCheck(): Promise<void> {
+  if (!initialCheckPromise) {
+    initialCheckPromise = Promise.all([
+      checkSourceAvailability("mospi"),
+      checkSourceAvailability("rbi"),
+      checkSourceAvailability("nse"),
+    ]).then(() => {
+      console.log("✅ Initial source availability check complete:", {
+        mospi: sourceStatus.mospi.available,
+        rbi: sourceStatus.rbi.available,
+        nse: sourceStatus.nse.available,
+      });
+    });
   }
 
-  initialCheckInProgress = true;
-  initialCheckPromise = Promise.all([
-    checkSourceAvailability("mospi"),
-    checkSourceAvailability("rbi"),
-    checkSourceAvailability("nse"),
-  ]).then(() => {
-    console.log("✅ Initial source availability check complete:", {
-      mospi: sourceStatus.mospi.available,
-      rbi: sourceStatus.rbi.available,
-      nse: sourceStatus.nse.available,
-    });
-  });
-
+  // Always await – even if it was started by another caller
   return initialCheckPromise;
 }
 
@@ -118,10 +133,8 @@ async function checkAllSourcesInitial(): Promise<void> {
  * Decide which provider to use for an indicator (priority-based routing)
  */
 async function selectProvider(indicatorId: string): Promise<{ provider: DataProvider; source: LiveSource }> {
-  // Ensure initial check is complete before selecting provider
-  if (!initialCheckInProgress) {
-    await checkAllSourcesInitial();
-  }
+  // Wait for the initial availability check to finish before routing
+  await ensureInitialCheck();
 
   // Priority 1: MoSPI (government statistics)
   if (canFetchFromMoSPI(indicatorId)) {
@@ -151,7 +164,6 @@ async function selectProvider(indicatorId: string): Promise<{ provider: DataProv
 export const hybridProvider: DataProvider = {
   async getIndicators(filter?: DataFilter): Promise<Indicator[]> {
     // Always get full indicator list from mock provider
-    // In the future, we can merge with MoSPI's list
     return mockProvider.getIndicators(filter);
   },
 
@@ -182,7 +194,12 @@ export const hybridProvider: DataProvider = {
     const { provider, source } = await selectProvider(indicatorId);
 
     try {
-      return await provider.getSeries(indicatorId, opts);
+      const series = await provider.getSeries(indicatorId, opts);
+      // If the live provider returned empty series, fall back to mock sparkline
+      if (series.length === 0 && provider !== mockProvider) {
+        return mockProvider.getSeries(indicatorId, opts);
+      }
+      return series;
     } catch (error) {
       console.error(`Error fetching series for ${indicatorId} from ${source}, falling back to mock:`, error);
 
@@ -253,4 +270,5 @@ export function refreshAllSources(): void {
     sourceStatus[key].available = null;
     sourceStatus[key].lastCheck = 0;
   }
+  initialCheckPromise = null;
 }

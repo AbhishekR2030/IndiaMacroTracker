@@ -22,37 +22,13 @@ const upcomingReleases: CalendarEvent[] = [
   {
     date: "2026-02-14",
     label: "WPI Inflation (January)",
-    source: "DPIIT",
+    source: "MoSPI",
     category: "Inflation",
-  },
-  {
-    date: "2026-02-17",
-    label: "Trade Balance (January)",
-    source: "MoCI",
-    category: "External Sector",
-  },
-  {
-    date: "2026-02-21",
-    label: "FX Reserves (Weekly)",
-    source: "RBI",
-    category: "External Sector",
   },
   {
     date: "2026-02-28",
     label: "GDP Growth (Q3 FY26)",
     source: "MoSPI",
-    category: "Growth",
-  },
-  {
-    date: "2026-03-03",
-    label: "PMI Manufacturing (February)",
-    source: "S&P Global",
-    category: "Growth",
-  },
-  {
-    date: "2026-03-05",
-    label: "PMI Services (February)",
-    source: "S&P Global",
     category: "Growth",
   },
   {
@@ -83,32 +59,8 @@ const upcomingReleases: CalendarEvent[] = [
   {
     date: "2026-03-14",
     label: "WPI Inflation (February)",
-    source: "DPIIT",
+    source: "MoSPI",
     category: "Inflation",
-  },
-  {
-    date: "2026-03-17",
-    label: "Trade Balance (February)",
-    source: "MoCI",
-    category: "External Sector",
-  },
-  {
-    date: "2026-03-25",
-    label: "GST Collections (February)",
-    source: "MoF",
-    category: "Growth",
-  },
-  {
-    date: "2026-03-28",
-    label: "Fiscal Deficit (11M FY26)",
-    source: "CGA",
-    category: "Fiscal",
-  },
-  {
-    date: "2026-03-31",
-    label: "Current Account Balance (Q3 FY26)",
-    source: "RBI",
-    category: "External Sector",
   },
 ];
 

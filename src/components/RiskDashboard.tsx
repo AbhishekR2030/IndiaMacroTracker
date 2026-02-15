@@ -34,56 +34,41 @@ function getRiskLevelStyle(level: RiskLevel): { bg: string; text: string; border
 }
 
 function assessRisks(indicators: ProcessedIndicator[]): RiskCard[] {
-  // Helper to find indicator by id
   const findIndicator = (id: string) => indicators.find((ind) => ind.id === id);
 
   // 1. Inflation Risk
-  const cpiHeadline = findIndicator("cpi-headline-yoy");
-  const cpiCore = findIndicator("cpi-core-yoy");
-  const wpi = findIndicator("wpi-yoy");
+  const cpiHeadline = findIndicator("cpi-headline");
+  const cpiFood = findIndicator("cpi-food");
+  const wpi = findIndicator("wpi");
 
   const avgInflation =
     ((cpiHeadline?.latestValue || 0) +
-      (cpiCore?.latestValue || 0) +
+      (cpiFood?.latestValue || 0) +
       (wpi?.latestValue || 0)) /
     3;
   const inflationRisk: RiskLevel = avgInflation > 5.5 ? "High" : avgInflation > 4.5 ? "Moderate" : "Low";
 
   // 2. Growth Momentum
-  const gdp = findIndicator("gdp-growth-yoy");
-  const iip = findIndicator("iip-growth-yoy");
-  const pmiMfg = findIndicator("pmi-manufacturing");
+  const gdp = findIndicator("gdp-yoy");
+  const iip = findIndicator("iip");
 
   const avgGrowth = ((gdp?.latestValue || 0) + (iip?.latestValue || 0)) / 2;
   const growthRisk: RiskLevel = avgGrowth < 5.5 ? "High" : avgGrowth < 6.5 ? "Moderate" : "Low";
 
   // 3. Liquidity Stress
-  const laf = findIndicator("laf-net-liquidity");
-  const creditGrowth = findIndicator("bank-credit-growth-yoy");
-  const m3Growth = findIndicator("m3-growth-yoy");
+  const laf = findIndicator("laf-liquidity");
+  const creditGrowth = findIndicator("bank-credit");
 
   const liquidityRisk: RiskLevel =
     (laf?.latestValue || 0) < -2.0 ? "High" : (laf?.latestValue || 0) < -1.0 ? "Moderate" : "Low";
 
-  // 4. External Vulnerability
-  const tradeBal = findIndicator("trade-balance");
-  const currentAcct = findIndicator("current-account-pct-gdp");
-  const fxReserves = findIndicator("fx-reserves");
+  // 4. Market & FX Risk
+  const vix = findIndicator("india-vix");
+  const usdinr = findIndicator("usdinr");
+  const gsec10y = findIndicator("gsec-10y");
 
-  const externalRisk: RiskLevel =
-    (currentAcct?.latestValue || 0) < -2.0
-      ? "High"
-      : (currentAcct?.latestValue || 0) < -1.0
-      ? "Moderate"
-      : "Low";
-
-  // 5. Fiscal Health
-  const fiscalDeficit = findIndicator("fiscal-deficit-fytd");
-  const taxCollections = findIndicator("gross-tax-collections");
-  const debtGDP = findIndicator("debt-to-gdp");
-
-  const fiscalRisk: RiskLevel =
-    (fiscalDeficit?.latestValue || 0) > 60 ? "High" : (fiscalDeficit?.latestValue || 0) > 50 ? "Moderate" : "Low";
+  const marketFxRisk: RiskLevel =
+    (vix?.latestValue || 0) > 20 ? "High" : (vix?.latestValue || 0) > 15 ? "Moderate" : "Low";
 
   return [
     {
@@ -100,9 +85,9 @@ function assessRisks(indicators: ProcessedIndicator[]): RiskCard[] {
           status: cpiHeadline?.status || "Neutral",
         },
         {
-          name: cpiCore?.name || "CPI Core",
-          value: cpiCore ? `${cpiCore.latestValue.toFixed(1)}%` : "N/A",
-          status: cpiCore?.status || "Neutral",
+          name: cpiFood?.name || "CPI Food",
+          value: cpiFood ? `${cpiFood.latestValue.toFixed(1)}%` : "N/A",
+          status: cpiFood?.status || "Neutral",
         },
         {
           name: wpi?.name || "WPI",
@@ -115,7 +100,7 @@ function assessRisks(indicators: ProcessedIndicator[]): RiskCard[] {
       title: "Growth Momentum",
       icon: "📈",
       description:
-        "Assesses economic growth trajectory based on GDP, industrial production, and business activity.",
+        "Assesses economic growth trajectory based on GDP and industrial production.",
       riskLevel: growthRisk,
       color: CATEGORY_MAP["Growth"].color,
       indicators: [
@@ -129,18 +114,13 @@ function assessRisks(indicators: ProcessedIndicator[]): RiskCard[] {
           value: iip ? `${iip.latestValue.toFixed(1)}%` : "N/A",
           status: iip?.status || "Neutral",
         },
-        {
-          name: pmiMfg?.name || "PMI Manufacturing",
-          value: pmiMfg ? `${pmiMfg.latestValue.toFixed(1)}` : "N/A",
-          status: pmiMfg?.status || "Neutral",
-        },
       ],
     },
     {
       title: "Liquidity Stress",
       icon: "💧",
       description:
-        "Evaluates banking system liquidity conditions, credit availability, and money supply growth.",
+        "Evaluates banking system liquidity conditions and credit availability.",
       riskLevel: liquidityRisk,
       color: CATEGORY_MAP["Liquidity & Money"].color,
       indicators: [
@@ -154,60 +134,30 @@ function assessRisks(indicators: ProcessedIndicator[]): RiskCard[] {
           value: creditGrowth ? `${creditGrowth.latestValue.toFixed(1)}%` : "N/A",
           status: creditGrowth?.status || "Neutral",
         },
-        {
-          name: m3Growth?.name || "M3 Growth",
-          value: m3Growth ? `${m3Growth.latestValue.toFixed(1)}%` : "N/A",
-          status: m3Growth?.status || "Neutral",
-        },
       ],
     },
     {
-      title: "External Vulnerability",
-      icon: "🌍",
+      title: "Market & FX Risk",
+      icon: "📉",
       description:
-        "Monitors external sector stability via trade balance, current account, and FX reserves.",
-      riskLevel: externalRisk,
-      color: CATEGORY_MAP["External Sector"].color,
+        "Monitors market volatility, exchange rate pressure, and bond yield movements.",
+      riskLevel: marketFxRisk,
+      color: CATEGORY_MAP["Markets"].color,
       indicators: [
         {
-          name: tradeBal?.name || "Trade Balance",
-          value: tradeBal ? `$${tradeBal.latestValue.toFixed(1)}B` : "N/A",
-          status: tradeBal?.status || "Neutral",
+          name: vix?.name || "India VIX",
+          value: vix ? `${vix.latestValue.toFixed(1)}` : "N/A",
+          status: vix?.status || "Neutral",
         },
         {
-          name: currentAcct?.name || "Current Account",
-          value: currentAcct ? `${currentAcct.latestValue.toFixed(1)}% of GDP` : "N/A",
-          status: currentAcct?.status || "Neutral",
+          name: usdinr?.name || "USD/INR",
+          value: usdinr ? `₹${usdinr.latestValue.toFixed(2)}` : "N/A",
+          status: usdinr?.status || "Neutral",
         },
         {
-          name: fxReserves?.name || "FX Reserves",
-          value: fxReserves ? `$${fxReserves.latestValue.toFixed(0)}B` : "N/A",
-          status: fxReserves?.status || "Neutral",
-        },
-      ],
-    },
-    {
-      title: "Fiscal Health",
-      icon: "🏛️",
-      description:
-        "Tracks government fiscal position through deficit trends, tax buoyancy, and debt levels.",
-      riskLevel: fiscalRisk,
-      color: CATEGORY_MAP["Fiscal"].color,
-      indicators: [
-        {
-          name: fiscalDeficit?.name || "Fiscal Deficit",
-          value: fiscalDeficit ? `${fiscalDeficit.latestValue.toFixed(0)}% of BE` : "N/A",
-          status: fiscalDeficit?.status || "Neutral",
-        },
-        {
-          name: taxCollections?.name || "Tax Collections",
-          value: taxCollections ? `₹${taxCollections.latestValue.toFixed(1)} Lakh Cr` : "N/A",
-          status: taxCollections?.status || "Neutral",
-        },
-        {
-          name: debtGDP?.name || "Debt-to-GDP",
-          value: debtGDP ? `${debtGDP.latestValue.toFixed(0)}%` : "N/A",
-          status: debtGDP?.status || "Neutral",
+          name: gsec10y?.name || "G-Sec 10Y",
+          value: gsec10y ? `${gsec10y.latestValue.toFixed(2)}%` : "N/A",
+          status: gsec10y?.status || "Neutral",
         },
       ],
     },
@@ -222,7 +172,7 @@ export function RiskDashboard({ indicators }: RiskDashboardProps) {
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          🛡️ Risk Dashboard
+          Risk Dashboard
         </h2>
         <p className="text-[13px] text-gray-500">
           Real-time assessment of key macroeconomic risks facing the Indian economy
@@ -230,7 +180,7 @@ export function RiskDashboard({ indicators }: RiskDashboardProps) {
       </div>
 
       {/* Risk cards grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-5">
         {riskCards.map((card) => {
           const levelStyle = getRiskLevelStyle(card.riskLevel);
 

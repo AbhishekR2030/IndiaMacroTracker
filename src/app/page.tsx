@@ -190,7 +190,7 @@ export default function Home() {
             Loading India Macro Tracker...
           </div>
           <div className="text-sm text-gray-500">
-            Fetching 34 macroeconomic indicators
+            Fetching 24 macroeconomic indicators
           </div>
           {/* Loading skeleton */}
           <div className="mt-6 flex justify-center gap-2">
@@ -284,9 +284,7 @@ export default function Home() {
               {activeCategory === "Rates & Credit" && "🏦"}
               {activeCategory === "FX" && "💱"}
               {activeCategory === "Liquidity & Money" && "💧"}
-              {activeCategory === "External Sector" && "🌍"}
               {activeCategory === "Markets" && "📉"}
-              {activeCategory === "Fiscal" && "🏛️"}
             </span>
             <h2 className="text-xl font-bold text-gray-900">
               {activeCategory}
